@@ -2,26 +2,30 @@ local transformations = {}
 do
     local x = transformations
 
-    x.StepUp = {
+    local up
+    up = {
         Seconds = function( t ) return t end,
         Minutes = function( t ) return t * 60 end,
-        Hours = function( t ) return x.Minutes( t ) * 60 end,
-        Days = function( t ) return x.Hours( t ) * 24 end,
-        Weeks = function( t ) return x.Days( t ) * 7 end,
-        Months = function( t ) return x.Weeks( t ) * 30 end,
-        Years = function( t ) return x.Months( t ) * 12 end
+        Hours = function( t ) return up.Minutes( t ) * 60 end,
+        Days = function( t ) return up.Hours( t ) * 24 end,
+        Weeks = function( t ) return up.Days( t ) * 7 end,
+        Months = function( t ) return up.Weeks( t ) * 30 end,
+        Years = function( t ) return up.Months( t ) * 12 end
     }
+    x.StepUp = up
 
-    x.StepDown = {
+    local down
+    down = {
         Seconds = function( t ) return t end,
         Minutes = function( t ) return t / 60 end,
-        Hours = function( t ) return x.Minutes( t ) / 60 end,
-        Days = function( t ) return x.Hours( t ) / 24 end,
-        Weeks = function( t ) return x.Days( t ) / 7 end,
-        Months = function( t ) return x.Weeks( t ) / 30 end,
-        Years = function( t ) return x.Months( t ) / 12 end,
+        Hours = function( t ) return down.Minutes( t ) / 60 end,
+        Days = function( t ) return down.Hours( t ) / 24 end,
+        Weeks = function( t ) return down.Days( t ) / 7 end,
+        Months = function( t ) return down.Weeks( t ) / 30 end,
+        Years = function( t ) return down.Months( t ) / 12 end,
         Timestamp = x.Seconds
     }
+    x.StepDown = down
 end
 
 -- == TimeRange == --
