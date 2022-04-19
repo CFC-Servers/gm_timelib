@@ -79,11 +79,14 @@ timeAmountMeta = {
     __ge: (b) => @seconds >= b.seconds
     __add: (b) =>
         if b.__class == @__class
-            print self, b
             timeAmount @seconds + b.seconds
         else
             timeAmount @seconds + b
-    __sub: (b) => timeAmount @seconds - b.seconds
+    __sub: (b) =>
+        if b.__class == @__class
+            timeAmount @seconds - b.seconds
+        else
+            timeAmount @seconds - b
     __mul: (b) => timeAmount @seconds * b
     __div: (b) =>
         if b.__class == @__class
@@ -98,9 +101,7 @@ timeAmountMeta = {
 
 timeAmount = (amount) -> setmetatable {seconds: amount, __class: "TimeInstance"}, timeAmountMeta
 
-export Time = {
-
-}
+export Time = {}
 
 timeMeta = {
     __index: (idx) =>
