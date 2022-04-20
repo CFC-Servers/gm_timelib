@@ -35,7 +35,7 @@ local rangeMeta = {
 
                     local transformer = StepDown[asIdx]
                     if not transformer then return end
-                    return transformer( StepDown, self.endSeconds - self.startSeconds )
+                    return transformer( StepDown, self.endTime - self.startTime )
                 end
             })
         end
@@ -46,24 +46,24 @@ local rangeMeta = {
             local seconds = idx.seconds
             min, max = seconds, seconds
         elseif idx.__class == "TimeRange" then
-            min, max = idx.startSeconds, idx.endSeconds
+            min, max = idx.startTime, idx.endTime
         elseif isnumber( idx ) then
             min, max = idx, idx
         end
 
-        return min >= self.startSeconds and max <= self.endSeconds
+        return min >= self.startTime and max <= self.endTime
     end,
 
     __name = "TimeRange",
     __tostring = function( self )
-        return string.format( "%s [%d - %d]", self.__class, self.startSeconds, self.endSeconds )
+        return string.format( "%s [%d - %d]", self.__class, self.startTime.As.Seconds, self.endTime.As.Seconds )
     end
 }
 
-local TimeRange = function( startSeconds, endSeconds )
+local TimeRange = function( startTime, endTime )
     return setmetatable({
-        startSeconds = startSeconds,
-        endSeconds = endSeconds,
+        startTime = startTime,
+        endTime = endTime,
         __class = "TimeRange"
     }, rangeMeta )
 end
@@ -83,7 +83,7 @@ local timeInstanceMeta = {
                 end
             } )
         elseif idx == "Ago" then
-            return TimeInstance( os.time() ) - self
+            return self:TimeInstance( self.time.Now ) - self
         else
             return rawget( self, idx )
         end
@@ -103,7 +103,7 @@ local timeInstanceMeta = {
             newAmount = a.seconds + b
         end
 
-        return TimeInstance( newAmount )
+        return a:TimeInstance( newAmount )
     end,
     __sub = function( a, b )
         local newAmount = 0
@@ -114,14 +114,14 @@ local timeInstanceMeta = {
             newAmount = a.seconds - b
         end
 
-        return TimeInstance( newAmount )
+        return a:TimeInstance( newAmount )
     end,
-    __mul = function( a, b ) return TimeInstance( a.seconds * b ) end,
+    __mul = function( a, b ) return a:TimeInstance( a.seconds * b ) end,
     __div = function( a, b )
         if b.__class == a.__class then
             return a.seconds / b.seconds
         else
-            return TimeInstance( a.seconds / b )
+            return a:TimeInstance( a.seconds / b )
         end
     end,
 
@@ -130,15 +130,19 @@ local timeInstanceMeta = {
         return string.format( "%s [%d seconds]", self.__class, self.seconds )
     end,
     __concat = function( a, b )
-        return TimeRange( a.seconds, b.seconds )
+        return TimeRange( a, b )
     end
 }
 
-TimeInstance = function( amount )
+TimeInstance = function( amount, timeObject )
     return setmetatable(
         {
             seconds = amount,
-            __class = "TimeInstance"
+            time = timeObject,
+            __class = "TimeInstance",
+            TimeInstance = function( self, newAmount )
+                return TimeInstance( newAmount, self.timeObject )
+            end
         },
         timeInstanceMeta
     )
@@ -147,46 +151,33 @@ end
 -- == Time Table == --
 local timeMeta = {
     __index = function( self, idx )
-        if idx == "Now" then return TimeInstance( os.time() ) end
+        if idx == "Now" then return TimeInstance( self._basis(), self ) end
         if idx == "Since" then
-            return function(t) return TimeInstance( os.time() - t.seconds ) end
+            return function(t) return TimeInstance( self._basis() - t.seconds, self ) end
         end
         if idx == "Until" then
-            return function(t) return TimeInstance( t.seconds - os.time() ) end
+            return function(t) return TimeInstance( t.seconds - self._basis(), self ) end
         end
 
         local StepUp = transformations.StepUp
         local transformer = StepUp[idx]
         if not transformer then return rawget( self, idx ) end
 
-        return function(n) return TimeInstance( transformer( StepUp, n ) ) end
+        return function(n) return TimeInstance( transformer( StepUp, n ), self ) end
     end,
-    __call = function( seconds ) return TimeInstance( seconds ) end
+    __call = function( self, seconds ) return TimeInstance( seconds, self ) end
 }
 
-Time = setmetatable( {}, timeMeta )
-
--- Imposes Time's metatable on _G
-Time.globalize = function()
-    local mt = getmetatable( _G )
-
-    -- Prevents accidentally wrapping twice
-    if mt.__timeGlobalized then return end
-
-    -- Store the existing __index function
-    local indexFunc = mt.__index
-    mt.__index = function( self, idx )
-        -- See if the given index exists on the Time metatable
-        local timeValue = timeMeta:__index( idx )
-        if timeValue then return timeValue end
-        if not indexFunc then return end
-
-        -- Fallback to the existing __index function
-        return indexFunc( self, idx )
+local function createTimeInstance( timeBasis )
+    local newTime = { _basis = timeBasis }
+    newTime.Basis = function( newBasis )
+        return createTimeInstance( newBasis )
     end
 
-    mt.__timeGlobalized = true
+    return setmetatable( newTime, table.Copy( timeMeta ) )
 end
+
+Time = createTimeInstance( os.time )
 
 -- Extend the number metatable to allow for (2).Minutes and such
 debug.setmetatable( 0, {
@@ -195,6 +186,6 @@ debug.setmetatable( 0, {
 
         local transformer = StepUp[idx]
         if not transformer then return end
-        return TimeInstance( transformer( StepUp, self ) )
+        return TimeInstance( transformer( StepUp, self ), Time )
     end
 })
