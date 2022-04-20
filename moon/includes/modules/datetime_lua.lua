@@ -1,31 +1,28 @@
-local transformations = {}
+local transformations = {
+    StepUp = {},
+    StepDown = {}
+}
+
 do
-    local x = transformations
+    local up = transformations.StepUp
+    function up:Seconds( t ) return t end
+    function up:Minutes( t ) return t * 60 end
+    function up:Hours( t ) return self:Minutes( t ) * 60 end
+    function up:Days( t ) return self:Hours( t ) * 24 end
+    function up:Weeks( t ) return self:Days( t ) * 7 end
+    function up:Months( t ) return self:Weeks( t ) * 30 end
+    function up:Years( t ) return self:Months( t ) * 12 end
 
-    local up
-    up = {
-        Seconds = function( t ) return t end,
-        Minutes = function( t ) return t * 60 end,
-        Hours = function( t ) return up.Minutes( t ) * 60 end,
-        Days = function( t ) return up.Hours( t ) * 24 end,
-        Weeks = function( t ) return up.Days( t ) * 7 end,
-        Months = function( t ) return up.Weeks( t ) * 30 end,
-        Years = function( t ) return up.Months( t ) * 12 end
-    }
-    x.StepUp = up
+    local down = transformations.StepDown
+    function down:Seconds( t ) return t end
+    function down:Minutes( t ) return t / 60 end
+    function down:Hours( t ) return self:Minutes( t ) / 60 end
+    function down:Days( t ) return self:Hours( t ) / 24 end
+    function down:Weeks( t ) return self:Days( t ) / 7 end
+    function down:Months( t ) return self:Weeks( t ) / 30 end
+    function down:Years( t ) return self:Months( t ) / 12 end
+    down.Timestamp = down.Seconds
 
-    local down
-    down = {
-        Seconds = function( t ) return t end,
-        Minutes = function( t ) return t / 60 end,
-        Hours = function( t ) return down.Minutes( t ) / 60 end,
-        Days = function( t ) return down.Hours( t ) / 24 end,
-        Weeks = function( t ) return down.Days( t ) / 7 end,
-        Months = function( t ) return down.Weeks( t ) / 30 end,
-        Years = function( t ) return down.Months( t ) / 12 end,
-        Timestamp = x.Seconds
-    }
-    x.StepDown = down
 end
 
 -- == TimeRange == --
@@ -34,9 +31,11 @@ local rangeMeta = {
         if idx == "As" then
             return setmetatable({}, {
                 __index = function( _, asIdx )
+                    local StepDown = transformations.StepDown
+
                     local transformer = transformations.StepDown[asIdx]
                     if not transformer then return end
-                    return transformer( self.endSeconds - self.startSeconds )
+                    return transformer( StepDown, self.endSeconds - self.startSeconds )
                 end
             })
         end
@@ -76,9 +75,11 @@ local timeInstanceMeta = {
         if idx == "As" then
             return setmetatable( {}, {
                 __index = function( _, asIdx )
-                    local transformer = transformations.StepDown[asIdx]
+                    local StepDown = transformations.StepDown
+
+                    local transformer = StepDown[asIdx]
                     if not transformer then return end
-                    return transformer( self.seconds )
+                    return transformer( StepDown, self.seconds )
                 end
             } )
         elseif idx == "Ago" then
@@ -154,10 +155,11 @@ local timeMeta = {
             return function(t) return TimeInstance( t.seconds - os.time() ) end
         end
 
-        local transformer = transformations.StepUp[idx]
+        local StepUp = transformations.StepUp
+        local transformer = StepUp[idx]
         if not transformer then return rawget( self, idx ) end
 
-        return function(n) return TimeInstance( transformer( n ) ) end
+        return function(n) return TimeInstance( transformer( StepUp, n ) ) end
     end,
     __call = function( seconds ) return TimeInstance( seconds ) end
 }
@@ -189,8 +191,10 @@ end
 -- Extend the number metatable to allow for (2).Minutes and such
 debug.setmetatable( 0, {
     __index = function( self, idx )
-        local transformer = transformations.StepUp[idx]
+        local StepUp = transformations.StepUp
+
+        local transformer = StepUp[idx]
         if not transformer then return end
-        return TimeInstance( transformer( self ) )
+        return TimeInstance( transformer( StepUp, self ) )
     end
 })
