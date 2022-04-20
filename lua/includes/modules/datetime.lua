@@ -33,7 +33,7 @@ local rangeMeta = {
                 __index = function( _, asIdx )
                     local StepDown = transformations.StepDown
 
-                    local transformer = transformations.StepDown[asIdx]
+                    local transformer = StepDown[asIdx]
                     if not transformer then return end
                     return transformer( StepDown, self.endSeconds - self.startSeconds )
                 end
