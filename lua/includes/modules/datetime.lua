@@ -10,7 +10,7 @@ do
     function up:Hours( t ) return self:Minutes( t ) * 60 end
     function up:Days( t ) return self:Hours( t ) * 24 end
     function up:Weeks( t ) return self:Days( t ) * 7 end
-    function up:Months( t ) return self:Weeks( t ) * 30 end
+    function up:Months( t ) return self:Weeks( t ) * 4 end
     function up:Years( t ) return self:Months( t ) * 12 end
 
     local down = transformations.StepDown
@@ -19,7 +19,7 @@ do
     function down:Hours( t ) return self:Minutes( t ) / 60 end
     function down:Days( t ) return self:Hours( t ) / 24 end
     function down:Weeks( t ) return self:Days( t ) / 7 end
-    function down:Months( t ) return self:Weeks( t ) / 30 end
+    function down:Months( t ) return self:Weeks( t ) / 4 end
     function down:Years( t ) return self:Months( t ) / 12 end
     down.Timestamp = down.Seconds
 
@@ -28,6 +28,8 @@ end
 -- == TimeRange == --
 local rangeMeta = {
     __index = function( self, idx )
+        if idx == nil then return end
+
         if idx == "As" then
             return setmetatable({}, {
                 __index = function( _, asIdx )
@@ -46,17 +48,17 @@ local rangeMeta = {
             local seconds = idx.seconds
             min, max = seconds, seconds
         elseif idx.__class == "TimeRange" then
-            min, max = idx.startTime, idx.endTime
+            min, max = idx.startTime.As.Seconds, idx.endTime.As.Seconds
         elseif isnumber( idx ) then
             min, max = idx, idx
         end
 
-        return min >= self.startTime and max <= self.endTime
+        return min >= self.startTime.As.Seconds and max <= self.endTime.As.Seconds
     end,
 
     __name = "TimeRange",
     __tostring = function( self )
-        return string.format( "%s [%d - %d]", self.__class, self.startTime.As.Seconds, self.endTime.As.Seconds )
+        return string.format( "TimeRange [%d - %d]", self.startTime.As.Seconds, self.endTime.As.Seconds )
     end
 }
 
@@ -83,7 +85,9 @@ local timeInstanceMeta = {
                 end
             } )
         elseif idx == "Ago" then
-            return self:TimeInstance( self.time.Now ) - self
+            return self:TimeInstance( ( self.time.Now - self ).As.Seconds )
+        elseif idx == "Hence" then
+            return self:TimeInstance( ( self.time.Now + self ).As.Seconds )
         else
             return rawget( self, idx )
         end
@@ -127,7 +131,7 @@ local timeInstanceMeta = {
 
     __name = "TimeInstance",
     __tostring = function( self )
-        return string.format( "%s [%d seconds]", self.__class, self.seconds )
+        return string.format( "TimeInstance [%d seconds]", self.seconds )
     end,
     __concat = function( a, b )
         return TimeRange( a, b )
@@ -136,25 +140,30 @@ local timeInstanceMeta = {
 
 TimeInstance = function( amount, timeObject )
     return setmetatable(
-        {
-            seconds = amount,
-            time = timeObject,
-            __class = "TimeInstance",
-            TimeInstance = function( self, newAmount )
-                return TimeInstance( newAmount, self.timeObject )
-            end
-        },
-        timeInstanceMeta
+    {
+        seconds = amount,
+        time = timeObject,
+        __class = "TimeInstance",
+        -- TODO: Come up with a better name for this
+        TimeInstance = function( self, newAmount )
+            return TimeInstance( newAmount, self.timeObject )
+        end
+    },
+    timeInstanceMeta
     )
 end
 
 -- == Time Table == --
 local timeMeta = {
     __index = function( self, idx )
-        if idx == "Now" then return TimeInstance( self._basis(), self ) end
+        if idx == "Now" then
+            return TimeInstance( self._basis(), self )
+        end
+
         if idx == "Since" then
             return function(t) return TimeInstance( self._basis() - t.seconds, self ) end
         end
+
         if idx == "Until" then
             return function(t) return TimeInstance( t.seconds - self._basis(), self ) end
         end
@@ -168,16 +177,16 @@ local timeMeta = {
     __call = function( self, seconds ) return TimeInstance( seconds, self ) end
 }
 
-local function createTimeInstance( timeBasis )
+local function createTimeObject( timeBasis )
     local newTime = { _basis = timeBasis }
     newTime.Basis = function( newBasis )
-        return createTimeInstance( newBasis )
+        return createTimeObject( newBasis )
     end
 
     return setmetatable( newTime, table.Copy( timeMeta ) )
 end
 
-Time = createTimeInstance( os.time )
+Time = createTimeObject( os.time )
 
 -- Extend the number metatable to allow for (2).Minutes and such
 debug.setmetatable( 0, {
