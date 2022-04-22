@@ -1,28 +1,36 @@
+local rawget = rawget
+local isnumber = isnumber
+local string_format = string.format
+
 local transformations = {
     StepUp = {},
     StepDown = {}
 }
 
+local StepUp, StepDown
 do
-    local up = transformations.StepUp
-    function up:Seconds( t ) return t end
-    function up:Minutes( t ) return t * 60 end
-    function up:Hours( t ) return self:Minutes( t ) * 60 end
-    function up:Days( t ) return self:Hours( t ) * 24 end
-    function up:Weeks( t ) return self:Days( t ) * 7 end
-    function up:Months( t ) return self:Weeks( t ) * 4 end
-    function up:Years( t ) return self:Months( t ) * 12 end
+    StepUp = {
+        Seconds = function( t ) return t end,
+        Minutes = function( t ) return t * 60 end,
+        Hours   = function( t ) return t * 60 * 60 end,
+        Days    = function( t ) return t * 60 * 60 * 24 end,
+        Weeks   = function( t ) return t * 60 * 60 * 24 * 7 end,
+        Months  = function( t ) return t * 60 * 60 * 24 * 7 * 4 end,
+        Years   = function( t ) return t * 60 * 60 * 24 * 7 * 4 * 12 end
+    }
+    transformations.StepUp = StepUp
 
-    local down = transformations.StepDown
-    function down:Seconds( t ) return t end
-    function down:Minutes( t ) return t / 60 end
-    function down:Hours( t ) return self:Minutes( t ) / 60 end
-    function down:Days( t ) return self:Hours( t ) / 24 end
-    function down:Weeks( t ) return self:Days( t ) / 7 end
-    function down:Months( t ) return self:Weeks( t ) / 4 end
-    function down:Years( t ) return self:Months( t ) / 12 end
-    down.Timestamp = down.Seconds
-
+    StepDown = {
+        Seconds = function( t ) return t end,
+        Minutes = function( t ) return t / 60 end,
+        Hours   = function( t ) return t / 60 / 60 end,
+        Days    = function( t ) return t / 60 / 60 / 24 end,
+        Weeks   = function( t ) return t / 60 / 60 / 24 / 7 end,
+        Months  = function( t ) return t / 60 / 60 / 24 / 7 / 4 end,
+        Years   = function( t ) return t / 60 / 60 / 24 / 7 / 4 / 12 end
+    }
+    StepDown.Timestamp = StepDown.Seconds
+    transformations.StepDown = StepDown
 end
 
 -- == TimeRange == --
@@ -33,11 +41,9 @@ local rangeMeta = {
         if idx == "As" then
             return setmetatable({}, {
                 __index = function( _, asIdx )
-                    local StepDown = transformations.StepDown
-
-                    local transformer = StepDown[asIdx]
+                    local transformer = rawget( StepDown, asIdx )
                     if not transformer then return end
-                    return transformer( StepDown, self.endTime - self.startTime )
+                    return transformer( self.endTime - self.startTime )
                 end
             })
         end
@@ -48,17 +54,17 @@ local rangeMeta = {
             local seconds = idx.seconds
             min, max = seconds, seconds
         elseif idx.__class == "TimeRange" then
-            min, max = idx.startTime.As.Seconds, idx.endTime.As.Seconds
+            min, max = idx.startTime.seconds, idx.endTime.seconds
         elseif isnumber( idx ) then
             min, max = idx, idx
         end
 
-        return min >= self.startTime.As.Seconds and max <= self.endTime.As.Seconds
+        return min >= self.startTime.seconds and max <= self.endTime.seconds
     end,
 
     __name = "TimeRange",
     __tostring = function( self )
-        return string.format( "TimeRange [%d - %d]", self.startTime.As.Seconds, self.endTime.As.Seconds )
+        return string_format( "TimeRange [%d - %d]", self.startTime.seconds, self.endTime.seconds )
     end
 }
 
@@ -77,17 +83,15 @@ local timeInstanceMeta = {
         if idx == "As" then
             return setmetatable( {}, {
                 __index = function( _, asIdx )
-                    local StepDown = transformations.StepDown
-
-                    local transformer = StepDown[asIdx]
+                    local transformer = rawget( StepDown, asIdx )
                     if not transformer then return end
-                    return transformer( StepDown, self.seconds )
+                    return transformer( self.seconds )
                 end
             } )
         elseif idx == "Ago" then
-            return self:TimeInstance( ( self.time.Now - self ).As.Seconds )
+            return self:TimeInstance( ( self.time.Now - self ).seconds )
         elseif idx == "Hence" then
-            return self:TimeInstance( ( self.time.Now + self ).As.Seconds )
+            return self:TimeInstance( ( self.time.Now + self ).seconds )
         else
             return rawget( self, idx )
         end
@@ -131,7 +135,7 @@ local timeInstanceMeta = {
 
     __name = "TimeInstance",
     __tostring = function( self )
-        return string.format( "TimeInstance [%d seconds]", self.seconds )
+        return string_format( "TimeInstance [%d seconds]", self.seconds )
     end,
     __concat = function( a, b )
         return TimeRange( a, b )
@@ -168,11 +172,10 @@ local timeMeta = {
             return function(t) return TimeInstance( t.seconds - self._basis(), self ) end
         end
 
-        local StepUp = transformations.StepUp
-        local transformer = StepUp[idx]
+        local transformer = rawget( StepUp, idx )
         if not transformer then return rawget( self, idx ) end
 
-        return function(n) return TimeInstance( transformer( StepUp, n ), self ) end
+        return function(n) return TimeInstance( transformer( n ), self ) end
     end,
     __call = function( self, seconds ) return TimeInstance( seconds, self ) end
 }
@@ -191,10 +194,8 @@ Time = createTimeObject( os.time )
 -- Extend the number metatable to allow for (2).Minutes and such
 debug.setmetatable( 0, {
     __index = function( self, idx )
-        local StepUp = transformations.StepUp
-
-        local transformer = StepUp[idx]
+        local transformer = rawget( StepUp, idx )
         if not transformer then return end
-        return TimeInstance( transformer( StepUp, self ), Time )
+        return TimeInstance( transformer( self ), Time )
     end
 })
