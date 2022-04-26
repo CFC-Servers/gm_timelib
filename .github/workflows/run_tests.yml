@@ -6,4 +6,4 @@ on:
 
 jobs:
   run-linter:
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
