@@ -4,5 +4,5 @@ on:
   pull_request:
 
 jobs:
-  run-linter:
+  run-tests:
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
