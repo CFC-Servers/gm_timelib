@@ -1,7 +1,6 @@
 name: GLuaTest Runner
 
 on:
-  push:
   pull_request:
 
 jobs:
