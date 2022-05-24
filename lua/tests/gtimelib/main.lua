@@ -2,21 +2,21 @@ return {
     {
         name = "Basic time objects should create without error",
         func = function()
-            expect( Time.Seconds( 5 ) ).to.beA( "TimeInstance" )
-            expect( Time.Minutes( 5 ) ).to.beA( "TimeInstance" )
-            expect( Time.Hours( 5 ) ).to.beA( "TimeInstance" )
-            expect( Time.Days( 5 ) ).to.beA( "TimeInstance" )
-            expect( Time.Weeks( 5 ) ).to.beA( "TimeInstance" )
-            expect( Time.Months( 5 ) ).to.beA( "TimeInstance" )
-            expect( Time.Years( 5 ) ).to.beA( "TimeInstance" )
+            expect( Time.Seconds( 5 ) ).to.beValid()
+            expect( Time.Minutes( 5 ) ).to.beValid()
+            expect( Time.Hours( 5 ) ).to.beValid()
+            expect( Time.Days( 5 ) ).to.beValid()
+            expect( Time.Weeks( 5 ) ).to.beValid()
+            expect( Time.Months( 5 ) ).to.beValid()
+            expect( Time.Years( 5 ) ).to.beValid()
 
-            expect( (5).Seconds ).to.beA( "TimeInstance" )
-            expect( (5).Minutes ).to.beA( "TimeInstance" )
-            expect( (5).Hours ).to.beA( "TimeInstance" )
-            expect( (5).Days ).to.beA( "TimeInstance" )
-            expect( (5).Weeks ).to.beA( "TimeInstance" )
-            expect( (5).Months ).to.beA( "TimeInstance" )
-            expect( (5).Years ).to.beA( "TimeInstance" )
+            expect( (5).Seconds ).to.beValid()
+            expect( (5).Minutes ).to.beValid()
+            expect( (5).Hours ).to.beValid()
+            expect( (5).Days ).to.beValid()
+            expect( (5).Weeks ).to.beValid()
+            expect( (5).Months ).to.beValid()
+            expect( (5).Years ).to.beValid()
         end
     },
     {
@@ -28,9 +28,6 @@ return {
             expect( Time.Weeks( 1 ).As.Days ).to.eq( 7 )
             expect( Time.Months( 1 ).As.Weeks ).to.eq( 4 )
             expect( Time.Years( 1 ).As.Months ).to.eq( 12 )
-            local a = true
-            local b = false
-            expect( a ).to.eq( b )
         end
     },
     {
@@ -42,14 +39,12 @@ return {
             expect( Time.Days( 7 ).As.Weeks ).to.eq( 1 )
             expect( Time.Weeks( 4 ).As.Months ).to.eq( 1)
             expect( Time.Months( 12 ).As.Years ).to.eq( 1 )
-            undefined( "blah" )
         end
     },
     {
         name = "TimeInstances should convert to timestamps",
         func = function()
             expect( Time.Seconds( os.time() ).As.Timestamp ).to.eq( os.time() )
-            local a = {} .. Color(1,1,1) .. Color() .. Color() .. Color() .. Color() .. Color()
         end
     },
     {
@@ -213,7 +208,7 @@ return {
             local b = (2).Hours.Ago
             local range = a .. b
 
-            expect( range ).to.beA( "TimeRange" )
+            expect( range ).to.beValid()
         end
     },
     {

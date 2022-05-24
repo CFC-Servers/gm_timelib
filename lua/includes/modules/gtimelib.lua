@@ -72,6 +72,7 @@ local TimeRange = function( startTime, endTime )
     return setmetatable({
         startTime = startTime,
         endTime = endTime,
+        IsValid = function() return true end,
         __class = "TimeRange"
     }, rangeMeta )
 end
@@ -148,7 +149,8 @@ TimeInstance = function( amount, timeObject )
         seconds = amount,
         time = timeObject,
         __class = "TimeInstance",
-        -- TODO: Come up with a better name for this
+        IsValid = function() return true end,
+        -- TODO: Come up with a better name for this sub-creation of TimeInstances
         TimeInstance = function( self, newAmount )
             return TimeInstance( newAmount, self.timeObject )
         end
