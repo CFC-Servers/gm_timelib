@@ -55,7 +55,7 @@ end
 local eventRange = event.Start .. event.End
 
 local function checkPly( ply )
-    local joinedAt = Time.Now - ply:TimeConnected()
+    local joinedAt = ply:TimeConnected().Seconds.Ago
     
     -- Check if joinedAt is inside the eventRange
     if eventRange[joinedAt] then
