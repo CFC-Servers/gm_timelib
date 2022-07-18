@@ -96,6 +96,12 @@ As-is, the best way to use lua libraries is to make them a dependency on your wo
 
 _[A full set of GLuaTest specs](https://github.com/CFC-Servers/gm_timelib/tree/main/lua/tests/gtimelib) have been included with this project. If you learn better by reading the code, I suggest you check them out_
 
+### Setup
+Simply require `gtimelib` in your script:
+```lua
+require( "gtimelib" )
+```
+
 ### `TimeInstance`
 
 #### A `TimeInstance` can be a certain _amount_ of time
