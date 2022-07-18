@@ -257,4 +257,4 @@ local MyTime = Time.Basis( CurTime )
 MyTime.Seconds( 5 ) -- Still just 5 seconds, the same as `Time.Seconds( 5 )`
 ```
 
-The only difference is the [relative time functions]() will be based on the function you passed into `Basis`.
+The only difference is the [relative time functions](https://github.com/CFC-Servers/gm_timelib#they-can-also-refer-to-a-specific-moment-in-time) will be based on the function you passed into `Basis`.
