@@ -23,11 +23,11 @@ Timeouts, cooldowns, timing calculations, time comparisons, etc. Eventually you'
 <br>
 
 ```lua
-local extraTime = Time.Hours( 3 ).As.Seconds
+local extraTime = Time.Hours( 3 )
 
 -- Extend a given ban's unban time by 3 hours
 local function extendBan( ban )
-    ban.unban = ban.unban + extraTime
+    ban.unban = (ban.unban + extraTime).As.Timestamp
 end
 ```
 
